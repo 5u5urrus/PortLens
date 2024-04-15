@@ -1,0 +1,91 @@
+import sys
+import requests
+from bs4 import BeautifulSoup
+from colorama import Fore, Style, init
+import textwrap
+
+#Author: Vahe Demirkhanyan
+
+def get_port_info(port_number):
+    url = f"https://www.speedguide.net/port.php?port={port_number}"
+    try:
+        response = requests.get(url, timeout=10)  # Set a timeout limit of 10 seconds
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            port_table = soup.find('table', class_='port')
+            if port_table:
+                services = []
+                threats = []
+                detailed_info = []
+                first_row = True
+                for row in port_table.find_all('tr')[1:]:
+                    try:
+                        cols = [td.text.strip() for td in row.find_all('td')]
+                        service_info = dict(zip(['Port', 'Protocol', 'Service', 'Details', 'Source'], cols))
+
+                        if first_row and service_info['Source'] == 'SG':  #check if it's the first row and source is 'SG'
+                           detailed_info.append(service_info)
+                           first_row = False  #reset the flag after the first row is processed
+                        else:
+                           category = categorize_entry(service_info)
+                           if category == 'Threats and Trojans':
+                               threats.append(service_info)
+                           else:
+                               services.append(service_info)
+                    except Exception as e:
+                        print(f"Failed to parse row due to: {str(e)}")
+                return services, threats, detailed_info
+
+            else:
+                return "No detailed information found for this port."
+        else:
+            return "Failed to retrieve information."
+    except requests.exceptions.Timeout:
+        return "Request timed out."
+    except requests.exceptions.RequestException as e:
+        return f"Request failed: {str(e)}"
+
+def print_details(title, items, is_detailed=False):
+    print(f"\n{Fore.YELLOW + Style.BRIGHT}{title.upper()}:")
+    if items:
+        for item in items:
+            if is_detailed:
+                # Special formatting for detailed information
+                print(f"{Fore.MAGENTA}  Port: {item['Port']} | {Fore.GREEN}Protocol: {item['Protocol']} | {Fore.GREEN + Style.BRIGHT}Service: {item['Service']} | {Fore.BLUE}Source: {item['Source']}")
+                details_wrapped = textwrap.fill(item['Details'], width=120, subsequent_indent='           ')
+            else:
+                print(f"{Fore.CYAN}  Port: {item['Port']} | {Fore.GREEN}Protocol: {item['Protocol']} | {Fore.GREEN + Style.BRIGHT}Service: {item['Service']} | {Fore.BLUE}Source: {item['Source']}")
+                details_wrapped = textwrap.fill(item['Details'], width=100, subsequent_indent='           ')
+            print(f"{Fore.WHITE}  Details: {details_wrapped}")
+    else:
+        print(f"{Fore.RED}  No data available.")
+
+def categorize_entry(service_info):
+    threats_keywords = ['[trojan]', 'trojan', 'threat']
+    if "Trojans" in service_info['Source'] or any(keyword in service_info['Details'] for keyword in threats_keywords) or any(keyword in service_info['Service'] for keyword in threats_keywords):
+        return 'Threats and Trojans'
+    else:
+        return 'Services and Programs'
+
+def main():
+    if len(sys.argv) > 1:
+        ports = sys.argv[1].split(',')
+        for port in ports:
+            try:
+                port = int(port.strip())
+                services, threats, detailed_info = get_port_info(port)
+                if services or threats or detailed_info:
+                    print(f"\n{Fore.GREEN + Style.BRIGHT}{'=' * 20} Information for Port {port} {'=' * 20}")
+                    print_details("General Information", detailed_info, is_detailed=True)
+                    print_details("Services and Programs", services)
+                    print_details("Threats and Trojans", threats)
+                    print(f"{Fore.RED + Style.BRIGHT}{'-' * 80}") 
+                else:
+                    print("No information found.")
+            except ValueError:
+                print(f"Error: Invalid port number '{port}'")
+    else:
+        print("Usage: python portlens.py <port1,port2,...>")
+
+if __name__ == "__main__":
+    main()
