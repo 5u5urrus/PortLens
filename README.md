@@ -19,5 +19,5 @@ To use PortLens, simply pass the port numbers as arguments:
 python portlens.py 80,443,8080
 python portlens.py 123
 ```
-<img width="90%" alt="portlens1" src="https://github.com/5u5urrus/PortLens/assets/165041037/cd56b55d-bc01-43da-b7ab-fa09a5207840">
+<img width="80%" alt="portlens1" src="https://github.com/5u5urrus/PortLens/assets/165041037/cd56b55d-bc01-43da-b7ab-fa09a5207840">
 
