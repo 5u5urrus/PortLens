@@ -3,13 +3,27 @@ import requests
 from bs4 import BeautifulSoup
 from colorama import Fore, Style, init
 import textwrap
+import random
 
 #Author: Vahe Demirkhanyan
 
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0",
+    "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) like Gecko",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0",
+    "Mozilla/5.0 (iPad; CPU OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0"
+]
+
 def get_port_info(port_number):
     url = f"https://www.speedguide.net/port.php?port={port_number}"
+    headers = {'User-Agent': random.choice(USER_AGENTS)}
     try:
-        response = requests.get(url, timeout=10)  # Set a timeout limit of 10 seconds
+        response = requests.get(url, headers=headers, timeout=10)  # Set a timeout limit of 10 seconds
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             port_table = soup.find('table', class_='port')
@@ -23,9 +37,9 @@ def get_port_info(port_number):
                         cols = [td.text.strip() for td in row.find_all('td')]
                         service_info = dict(zip(['Port', 'Protocol', 'Service', 'Details', 'Source'], cols))
 
-                        if first_row and service_info['Source'] == 'SG':  #check if it's the first row and source is 'SG'
+                        if first_row and service_info['Source'] == 'SG':  # Check if it's the first row and source is 'SG'
                            detailed_info.append(service_info)
-                           first_row = False  #reset the flag after the first row is processed
+                           first_row = False  # Reset the flag after the first row is processed
                         else:
                            category = categorize_entry(service_info)
                            if category == 'Threats and Trojans':
@@ -85,7 +99,7 @@ def main():
             except ValueError:
                 print(f"Error: Invalid port number '{port}'")
     else:
-        print("Usage: python portlens.py <port1,port2,...>")
+        print("Usage: python script.py <port1,port2,...>")
 
 if __name__ == "__main__":
     main()
